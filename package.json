@@ -1,0 +1,24 @@
+{
+  "name": "zeroclaw-webui",
+  "version": "0.1.0",
+  "description": "Ứng dụng quản lý ZeroClaw trên Orange Pi Zero2",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test server/utils/shell.test.js",
+    "test:watch": "node --test --watch server/utils/shell.test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {},
+  "keywords": ["zeroclaw", "orange-pi", "manager"],
+  "author": "",
+  "license": "MIT"
+}
