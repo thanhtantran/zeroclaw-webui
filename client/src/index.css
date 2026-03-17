@@ -9,6 +9,6 @@ body,
 }
 
 body {
-  @apply bg-background text-slate-100;
+  @apply bg-slate-50 text-slate-900 dark:bg-background dark:text-slate-100;
 }
 

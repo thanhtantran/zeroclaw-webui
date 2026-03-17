@@ -9,8 +9,9 @@ import SkillsPage from './pages/Skills.jsx';
 
 function App() {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-slate-100">
-      <main className="flex-1 pb-16 px-3 pt-3 max-w-4xl mx-auto w-full">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-background dark:text-slate-100">
+      <NavBar />
+      <main className="flex-1 px-3 py-4 max-w-4xl mx-auto w-full">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -20,7 +21,17 @@ function App() {
           <Route path="/skills" element={<SkillsPage />} />
         </Routes>
       </main>
-      <NavBar />
+      <footer className="border-t border-slate-200 bg-white/60 px-3 py-3 text-center text-[11px] text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400">
+        Được tạo ra with love bởi{' '}
+        <a
+          href="https://github.com/thanhtantran"
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-slate-700 hover:underline dark:text-slate-200"
+        >
+          Tony Trần
+        </a>
+      </footer>
     </div>
   );
 }

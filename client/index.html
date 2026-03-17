@@ -1,11 +1,25 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZeroClaw Manager</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('zeroclaw-theme');
+          var theme = stored || 'dark';
+          var isDark = theme === 'dark';
+          document.documentElement.classList.toggle('dark', isDark);
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      })();
+    </script>
+    <title>ZeroClaw Web UI</title>
   </head>
-  <body class="bg-background text-slate-100">
+  <body class="bg-slate-50 text-slate-900 dark:bg-background dark:text-slate-100">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
