@@ -144,9 +144,13 @@ router.post('/install', async (req, res) => {
     const safeName = sanitizeSkillName(name);
     // Dùng sanitizeInput cho đường dẫn, nhưng tên đã hạn chế [a-zA-Z0-9_-]
     const dir = path.join(OPEN_SKILLS_DIR, safeName);
-    // Chỉ cho phép path nằm trong OPEN_SKILLS_DIR
-    const normalized = path.normalize(dir);
-    if (!normalized.startsWith(path.normalize(OPEN_SKILLS_DIR))) {
+
+    const baseResolved = await fs.realpath(OPEN_SKILLS_DIR).catch(() => path.resolve(OPEN_SKILLS_DIR));
+    const dirResolved = await fs.realpath(dir).catch(() => path.resolve(dir));
+    const baseForRel = process.platform === 'win32' ? baseResolved.toLowerCase() : baseResolved;
+    const dirForRel = process.platform === 'win32' ? dirResolved.toLowerCase() : dirResolved;
+    const rel = path.relative(baseForRel, dirForRel);
+    if (rel.startsWith('..') || path.isAbsolute(rel)) {
       return res.status(400).json({ error: 'Invalid skill path' });
     }
 
@@ -164,7 +168,7 @@ router.post('/install', async (req, res) => {
     }
 
     // Chạy: zeroclaw skills install /home/admin/open-skills/<name>/
-    const skillPath = `${normalized}/`;
+    const skillPath = dirResolved.endsWith(path.sep) ? dirResolved : `${dirResolved}${path.sep}`;
     // sanitizeInput đảm bảo không có ký tự injection trong đường dẫn
     sanitizeInput(skillPath);
 

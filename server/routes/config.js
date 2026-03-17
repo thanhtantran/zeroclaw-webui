@@ -37,7 +37,7 @@ router.get('/', async (_req, res) => {
  * PUT /api/config
  * Body: raw text (nội dung TOML). Validate bằng @iarna/toml, backup rồi ghi.
  */
-router.put('/', express.text({ type: '*/*' }), async (req, res) => {
+router.put('/', express.text({ type: '*/*', limit: '1mb' }), async (req, res) => {
   const content = req.body;
   if (typeof content !== 'string') {
     return res.status(400).json({ error: 'Body must be raw TOML text' });

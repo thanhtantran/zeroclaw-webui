@@ -140,8 +140,8 @@ function DiagnosticsPage() {
                   [{section}]
                 </div>
                 <ul className="ml-2 mt-0.5 space-y-0.5">
-                  {checks.map((c, idx) => (
-                    <li key={idx} className="flex items-start gap-1">
+                  {checks.map((c) => (
+                    <li key={`${c.label || ''}:${c.detail || ''}`} className="flex items-start gap-1">
                       <span className="mt-[1px]">
                         {iconForStatus(c.status)}
                       </span>
@@ -191,8 +191,8 @@ function DiagnosticsPage() {
               </p>
             )}
             <ul className="space-y-0.5">
-              {(channelDoc.data.channels || []).map((c, idx) => (
-                <li key={idx} className="flex items-start gap-1">
+              {(channelDoc.data.channels || []).map((c) => (
+                <li key={`${c.name || ''}:${c.detail || ''}`} className="flex items-start gap-1">
                   <span className="mt-[1px]">
                     {c.icon || iconForStatus(c.status)}
                   </span>

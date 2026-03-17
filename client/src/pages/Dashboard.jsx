@@ -45,6 +45,7 @@ function DashboardPage() {
     } catch (err) {
       setStatusData({ loading: false, error: err.message, data: null });
       setServiceStatus((prev) => ({ ...prev, loading: false, error: err.message }));
+      setDaemonState((prev) => ({ ...prev, loading: false, error: err.message, data: null }));
     }
   }, []);
 

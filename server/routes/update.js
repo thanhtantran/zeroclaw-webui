@@ -7,6 +7,7 @@
  * - GET  /api/update/build-status -> trạng thái build hiện tại
  */
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { run } = require('../utils/shell');
@@ -123,6 +124,18 @@ router.post('/pull', async (_req, res) => {
 router.post('/build', (_req, res) => {
   if (buildState.status === 'running') {
     return res.status(409).json({ error: 'Build already running' });
+  }
+
+  if (!fs.existsSync(INSTALL_SCRIPT)) {
+    const now = new Date().toISOString();
+    broadcastBuildLog(`\n[build:error] install.sh not found: ${INSTALL_SCRIPT}\n`);
+    setBuildStatus('failed', {
+      startedAt: now,
+      finishedAt: now,
+      exitCode: null,
+      error: `install.sh not found: ${INSTALL_SCRIPT}`,
+    });
+    return res.status(404).json({ error: `install.sh not found: ${INSTALL_SCRIPT}` });
   }
 
   setBuildStatus('running');

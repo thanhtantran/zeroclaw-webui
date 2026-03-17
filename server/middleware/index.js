@@ -2,4 +2,8 @@
  * Middleware chung (auth, error handler, ...)
  * Bước sau sẽ thêm auth.js và các middleware khác
  */
-module.exports = {};
+function applyMiddlewares(app) {
+  return app;
+}
+
+module.exports = { applyMiddlewares };

@@ -24,7 +24,7 @@ function initBuildWebSocket(server) {
       try {
         ws.send(JSON.stringify(lastStatusPayload));
       } catch (e) {
-        // ignore
+        console.warn('[ws:build] send failed:', e && e.message ? e.message : String(e));
       }
     }
 
@@ -44,7 +44,7 @@ function broadcastBuildLog(chunk) {
       try {
         ws.send(payload);
       } catch (e) {
-        // ignore
+        console.warn('[ws:build] send failed:', e && e.message ? e.message : String(e));
       }
     }
   }
@@ -63,7 +63,7 @@ function broadcastBuildStatus(status) {
       try {
         ws.send(json);
       } catch (e) {
-        // ignore
+        console.warn('[ws:build] send status failed:', e && e.message ? e.message : String(e));
       }
     }
   }

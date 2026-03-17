@@ -161,6 +161,13 @@ function ConfigPage() {
   const handleSave = async () => {
     if (mode === 'form') {
       if (!validateForm()) return;
+    } else {
+      try {
+        TOML.parse(rawText);
+      } catch (err) {
+        setSaveError(`TOML parse error: ${err.message}`);
+        return;
+      }
     }
     const ok = window.confirm('Ghi đè config.toml với thay đổi hiện tại?');
     if (!ok) return;

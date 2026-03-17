@@ -125,10 +125,11 @@ function SkillsPage() {
             )}
             {installed.items.length > 0 && (
               <ul className="space-y-0.5 text-[11px]">
-                {installed.items.map((s, idx) => {
+                {installed.items.map((s) => {
                   const line = typeof s === 'string' ? s : s.raw || JSON.stringify(s);
+                  const key = typeof s === 'string' ? s : s?.name || s?.raw || line;
                   return (
-                    <li key={idx} className="font-mono text-slate-200">
+                    <li key={key} className="font-mono text-slate-200">
                       {line}
                     </li>
                   );
