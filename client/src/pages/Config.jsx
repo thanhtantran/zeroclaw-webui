@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import TOML from 'smol-toml';
 import CodeMirror from '@uiw/react-codemirror';
-import { toml } from '@codemirror/lang-toml';
+// TOML syntax highlighting removed - package @codemirror/lang-toml doesn't exist
 
 const TOOLTIP_CLASS =
   'ml-1 cursor-help text-[10px] rounded-full border border-slate-600 px-1 text-slate-300';
@@ -608,7 +608,7 @@ function ConfigPage() {
                 value={rawText}
                 height="480px"
                 theme="dark"
-                extensions={[toml()]}
+                extensions={[]}
                 onChange={(value) => setRawText(value)}
               />
             </div>
