@@ -61,7 +61,33 @@ router.get('/check', async (_req, res) => {
       });
     }
 
-    const logResult = await run('git', ['log', 'HEAD..origin/main', '--oneline'], {
+    let remoteRef = 'origin/main';
+
+    const originHead = await run('git', ['symbolic-ref', 'refs/remotes/origin/HEAD'], {
+      timeout: 30000,
+      spawnOptions: { cwd: REPO_DIR },
+    });
+
+    if (originHead.exitCode === 0) {
+      const ref = String(originHead.stdout || '').trim();
+      if (ref.startsWith('refs/remotes/')) {
+        remoteRef = ref.replace(/^refs\/remotes\//, '').trim() || remoteRef;
+      }
+    } else {
+      const hasMain = await run('git', ['rev-parse', '--verify', 'origin/main'], {
+        timeout: 30000,
+        spawnOptions: { cwd: REPO_DIR },
+      });
+      if (hasMain.exitCode !== 0) {
+        const hasMaster = await run('git', ['rev-parse', '--verify', 'origin/master'], {
+          timeout: 30000,
+          spawnOptions: { cwd: REPO_DIR },
+        });
+        if (hasMaster.exitCode === 0) remoteRef = 'origin/master';
+      }
+    }
+
+    const logResult = await run('git', ['log', `HEAD..${remoteRef}`, '--oneline'], {
       timeout: 30000,
       spawnOptions: { cwd: REPO_DIR },
     });

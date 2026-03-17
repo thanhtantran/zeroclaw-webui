@@ -87,7 +87,7 @@ function SkillsPage() {
       <header className="space-y-1">
         <h1 className="text-lg font-semibold">Skills</h1>
         <p className="text-xs text-slate-400">
-          Quản lý skill đã cài và skill có sẵn trong <code>/home/admin/open-skills</code>.
+          Quản lý skill đã cài và skill có sẵn trong <code>/home/admin/open-skills/skills</code>.
         </p>
       </header>
 
@@ -145,7 +145,7 @@ function SkillsPage() {
             <div>
               <h2 className="text-sm font-semibold text-slate-200">Có sẵn (open-skills)</h2>
               <p className="text-[11px] text-slate-400">
-                Skill phát hiện trong thư mục <code>/home/admin/open-skills</code>.
+                Skill phát hiện trong thư mục <code>/home/admin/open-skills/skills</code>.
               </p>
             </div>
             <button
@@ -172,12 +172,8 @@ function SkillsPage() {
             )}
             {available.skills.map((skill) => {
               const isInstalled = installedNames.has(skill.name);
-              const meta = skill.metadata || {};
-              const title = meta.title || skill.name;
-              const description =
-                meta.description ||
-                meta.summary ||
-                (skill.readme ? skill.readme.split('\n')[0] : '');
+              const title = skill.title || skill.name;
+              const description = skill.summary || '';
 
               return (
                 <div
@@ -186,25 +182,25 @@ function SkillsPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="text-[11px] font-semibold text-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => handleInstall(skill.name)}
+                        disabled={isInstalled || installing === skill.name}
+                        className="text-left text-[11px] font-semibold text-slate-100 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                      >
                         {title}
-                      </div>
+                      </button>
                       <div className="text-[10px] text-slate-400">
                         <span className="font-mono text-slate-500">{skill.name}</span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleInstall(skill.name)}
-                      disabled={isInstalled || installing === skill.name}
-                      className="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white shadow hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
+                    <div className="text-[10px] text-slate-400">
                       {isInstalled
                         ? 'Installed'
                         : installing === skill.name
                           ? 'Installing…'
-                          : 'Install'}
-                    </button>
+                          : 'Click to install'}
+                    </div>
                   </div>
                   {description && (
                     <p className="mt-1 text-[11px] text-slate-300 line-clamp-3">

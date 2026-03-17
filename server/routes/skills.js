@@ -13,7 +13,7 @@ const { run, sanitizeInput } = require('../utils/shell');
 const router = express.Router();
 
 const ZEROCLAW_BIN = process.env.ZEROCLAW_BIN || 'zeroclaw';
-const OPEN_SKILLS_DIR = process.env.ZEROCLAW_OPEN_SKILLS_DIR || '/home/admin/open-skills';
+const OPEN_SKILLS_DIR = process.env.ZEROCLAW_OPEN_SKILLS_DIR || '/home/admin/open-skills/skills';
 
 /**
  * Sanitizer name skill: chỉ cho phép [a-zA-Z0-9_-]
@@ -31,7 +31,7 @@ function sanitizeSkillName(name) {
 /**
  * Parse output của `zeroclaw skills list` thành mảng.
  * Vì bạn chưa đưa mẫu, tạm thời:
- * - Bỏ dòng INFO
+ * - Bỏ dòng INFO/WARN
  * - Lấy các dòng không rỗng, không phải tiêu đề, trả về mảng strings
  */
 function parseSkillsList(stdout) {
@@ -40,7 +40,7 @@ function parseSkillsList(stdout) {
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     if (!line) continue;
-    if (/\bINFO\b/.test(line)) continue;
+    if (/\b(INFO|WARN)\b/.test(line)) continue;
     if (line.startsWith('Skills') || line.startsWith('Installed')) continue;
     items.push(line);
   }
@@ -80,7 +80,7 @@ router.get('/installed', async (_req, res) => {
 
 /**
  * GET /api/skills/available
- * Liệt kê thư mục trong OPEN_SKILLS_DIR, đọc README.md hoặc skill.json nếu có.
+ * Quét thư mục OPEN_SKILLS_DIR và chỉ lấy những skill có file SKILL.md.
  */
 router.get('/available', async (_req, res) => {
   try {
@@ -101,31 +101,29 @@ router.get('/available', async (_req, res) => {
       const name = ent.name;
       const skillDir = path.join(OPEN_SKILLS_DIR, name);
 
-      const skill = { name, path: skillDir, readme: null, metadata: null };
-
-      // README.md (tuỳ chọn)
+      const skillMdPath = path.join(skillDir, 'SKILL.md');
+      let skillMd;
       try {
-        const readmePath = path.join(skillDir, 'README.md');
-        const readme = await fs.readFile(readmePath, 'utf8');
-        skill.readme = readme;
-      } catch (e) {
-        // ignore
+        skillMd = await fs.readFile(skillMdPath, 'utf8');
+      } catch (err) {
+        if (err && err.code === 'ENOENT') continue;
+        throw err;
       }
 
-      // skill.json (tuỳ chọn)
-      try {
-        const metaPath = path.join(skillDir, 'skill.json');
-        const metaRaw = await fs.readFile(metaPath, 'utf8');
-        try {
-          skill.metadata = JSON.parse(metaRaw);
-        } catch {
-          skill.metadata = { parseError: 'Invalid JSON in skill.json' };
-        }
-      } catch (e) {
-        // ignore
+      const lines = skillMd.split('\n').map((l) => l.trim());
+      const h1 = lines.find((l) => l.startsWith('# '));
+      const title = (h1 ? h1.replace(/^#\s+/, '').trim() : '') || name;
+
+      let summary = '';
+      for (let i = 0; i < lines.length; i += 1) {
+        const l = lines[i];
+        if (!l) continue;
+        if (l.startsWith('#')) continue;
+        summary = l;
+        break;
       }
 
-      skills.push(skill);
+      skills.push({ name, path: skillDir, title, summary });
     }
 
     res.json({ baseDir: OPEN_SKILLS_DIR, skills });
