@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import StatusBadge from '../components/StatusBadge.jsx';
 import Terminal from '../components/Terminal.jsx';
 
@@ -74,6 +74,64 @@ function DashboardPage() {
     } catch (err) {
       setRestartState({ running: false, error: err.message });
     }
+  };
+
+  // Agent (CLI) state
+  const agentWsRef = useRef(null);
+  const [agentStatus, setAgentStatus] = useState('disconnected'); // disconnected | connecting | connected
+  const [agentLog, setAgentLog] = useState('');
+  const [agentInput, setAgentInput] = useState('');
+
+  const connectAgent = () => {
+    if (agentWsRef.current && agentWsRef.current.readyState === WebSocket.OPEN) return;
+    setAgentStatus('connecting');
+    const loc = window.location;
+    const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${loc.host}/ws/agent`;
+    const ws = new WebSocket(wsUrl);
+    agentWsRef.current = ws;
+    ws.onopen = () => setAgentStatus('connected');
+    ws.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg.event === 'output') {
+          setAgentLog((prev) => prev + String(msg.data || ''));
+        } else if (msg.event === 'status') {
+          setAgentStatus(String(msg.status || 'connected'));
+        } else if (msg.event === 'error') {
+          setAgentLog((prev) => prev + `\n[error] ${msg.error || 'Unknown error'}\n`);
+        }
+      } catch (e) {
+        setAgentLog((prev) => prev + `\n[recv] ${ev.data}\n`);
+      }
+    };
+    ws.onclose = () => {
+      setAgentStatus('disconnected');
+      agentWsRef.current = null;
+    };
+    ws.onerror = () => {
+      setAgentStatus('disconnected');
+    };
+  };
+
+  const disconnectAgent = () => {
+    if (agentWsRef.current) {
+      try { agentWsRef.current.close(); } catch (_) {}
+      agentWsRef.current = null;
+    }
+    setAgentStatus('disconnected');
+  };
+
+  const sendAgent = () => {
+    const text = String(agentInput || '').trim();
+    if (!text) return;
+    const ws = agentWsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      alert('Agent chưa kết nối. Hãy bấm Connect trước.');
+      return;
+    }
+    ws.send(JSON.stringify({ type: 'input', data: text }));
+    setAgentInput('');
   };
 
   const deriveServiceBadge = () => {
@@ -184,6 +242,63 @@ function DashboardPage() {
           title="Service Status"
           text={serviceStatus.data?.raw || ''}
         />
+      </section>
+
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-200">Agent (CLI)</h2>
+            <p className="text-[11px] text-slate-400">Giao tiếp trực tiếp qua lệnh <code>zeroclaw agent</code>.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {agentStatus !== 'connected' ? (
+              <button
+                type="button"
+                onClick={connectAgent}
+                className="rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-emerald-500"
+              >
+                Connect
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={disconnectAgent}
+                className="rounded-md bg-rose-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-rose-500"
+              >
+                Disconnect
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-800 bg-black/80 text-slate-100">
+          <textarea
+            readOnly
+            value={agentLog}
+            placeholder={agentStatus === 'connected' ? 'Agent đã kết nối. Bắt đầu trò chuyện…' : 'Chưa kết nối agent.'}
+            className="h-48 w-full resize-none bg-transparent px-3 py-2 text-xs font-mono leading-relaxed outline-none"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={agentInput}
+            onChange={(e) => setAgentInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') sendAgent(); }}
+            placeholder="Nhập câu hỏi…"
+            className="flex-1 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+            disabled={agentStatus !== 'connected'}
+          />
+          <button
+            type="button"
+            onClick={sendAgent}
+            disabled={agentStatus !== 'connected'}
+            className="rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Send
+          </button>
+        </div>
       </section>
     </div>
   );

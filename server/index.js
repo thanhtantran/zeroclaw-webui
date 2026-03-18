@@ -7,6 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { initBuildWebSocket } = require('./updateSocket');
+const { initAgentWebSocket } = require('./agentSocket');
 const { applyMiddlewares } = require('./middleware');
 
 const app = express();
@@ -39,6 +40,8 @@ const server = http.createServer(app);
 
 // WebSocket cho build log
 initBuildWebSocket(server);
+// WebSocket cho giao tiếp agent (CLI)
+initAgentWebSocket(server);
 
 server.listen(PORT, () => {
   console.log(`ZeroClaw Manager listening on port ${PORT}`);
