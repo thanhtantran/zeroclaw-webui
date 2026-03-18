@@ -85,33 +85,72 @@ function DashboardPage() {
   const connectAgent = () => {
     if (agentWsRef.current && agentWsRef.current.readyState === WebSocket.OPEN) return;
     setAgentStatus('connecting');
+
     const loc = window.location;
     const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${loc.host}/ws/agent`;
-    const ws = new WebSocket(wsUrl);
-    agentWsRef.current = ws;
-    ws.onopen = () => setAgentStatus('connected');
-    ws.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data);
-        if (msg.event === 'output') {
-          setAgentLog((prev) => prev + String(msg.data || ''));
-        } else if (msg.event === 'status') {
-          setAgentStatus(String(msg.status || 'connected'));
-        } else if (msg.event === 'error') {
-          setAgentLog((prev) => prev + `\n[error] ${msg.error || 'Unknown error'}\n`);
-        }
-      } catch (e) {
-        setAgentLog((prev) => prev + `\n[recv] ${ev.data}\n`);
+
+    const candidates = [`${protocol}//${loc.host}/ws/agent`];
+    if (loc.port === '5173') {
+      candidates.push(`${protocol}//${loc.hostname}:3000/ws/agent`);
+    }
+
+    const tryConnect = (idx) => {
+      if (idx >= candidates.length) {
+        setAgentStatus('disconnected');
+        return;
       }
+
+      const wsUrl = candidates[idx];
+      const ws = new WebSocket(wsUrl);
+      agentWsRef.current = ws;
+
+      let opened = false;
+      const openTimer = setTimeout(() => {
+        if (!opened) {
+          try { ws.close(); } catch (_) {}
+        }
+      }, 1500);
+
+      ws.onopen = () => {
+        opened = true;
+        clearTimeout(openTimer);
+        setAgentStatus('connected');
+      };
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.event === 'output') {
+            setAgentLog((prev) => prev + String(msg.data || ''));
+          } else if (msg.event === 'status') {
+            setAgentStatus(String(msg.status || 'connected'));
+          } else if (msg.event === 'error') {
+            setAgentLog((prev) => prev + `\n[error] ${msg.error || 'Unknown error'}\n`);
+          }
+        } catch (e) {
+          setAgentLog((prev) => prev + `\n[recv] ${ev.data}\n`);
+        }
+      };
+      ws.onclose = () => {
+        clearTimeout(openTimer);
+        if (!opened) {
+          agentWsRef.current = null;
+          tryConnect(idx + 1);
+          return;
+        }
+        setAgentStatus('disconnected');
+        agentWsRef.current = null;
+      };
+      ws.onerror = () => {
+        clearTimeout(openTimer);
+        if (!opened) {
+          try { ws.close(); } catch (_) {}
+          return;
+        }
+        setAgentStatus('disconnected');
+      };
     };
-    ws.onclose = () => {
-      setAgentStatus('disconnected');
-      agentWsRef.current = null;
-    };
-    ws.onerror = () => {
-      setAgentStatus('disconnected');
-    };
+
+    tryConnect(0);
   };
 
   const disconnectAgent = () => {
