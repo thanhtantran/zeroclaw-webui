@@ -8,6 +8,7 @@ const serviceRoutes = require('./service');
 const diagnosticsRoutes = require('./diagnostics');
 const updateRoutes = require('./update');
 const skillsRoutes = require('./skills');
+const agentRoutes = require('./agent');
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/service', serviceRoutes);
 router.use('/diagnostics', diagnosticsRoutes);
 router.use('/update', updateRoutes);
 router.use('/skills', skillsRoutes);
+router.use('/agent', agentRoutes);
 
 module.exports = router;
