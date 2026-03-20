@@ -22,7 +22,7 @@ function App() {
         </Routes>
       </main>
       <footer className="border-t border-slate-200 bg-white/60 px-3 py-3 text-center text-[11px] text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400">
-        Được tạo ra with love bởi{' '}
+        Được tạo ra with ❤ bởi{' '}
         <a
           href="https://github.com/thanhtantran"
           target="_blank"

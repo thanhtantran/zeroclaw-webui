@@ -312,7 +312,7 @@ function DashboardPage() {
           <div>
             <h2 className="text-sm font-semibold text-slate-200">Agent (CLI)</h2>
             <p className="text-[11px] text-slate-400">
-              Chat 1 lượt bằng lệnh <code>zeroclaw agent -m</code> (đã lọc bỏ dòng INFO).
+              Chat với <code>zeroclaw agent</code> như sử dụng CLI.
             </p>
           </div>
           <div className="flex items-center gap-2">
