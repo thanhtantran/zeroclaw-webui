@@ -12,6 +12,16 @@ const router = express.Router();
 
 const ZEROCLAW_BIN = process.env.ZEROCLAW_BIN || 'zeroclaw';
 
+const ANSI_PATTERN = /\x1B\[[0-?]*[ -\/]*[@-~]/g;
+
+function stripAnsi(text) {
+  return String(text || '').replace(ANSI_PATTERN, '');
+}
+
+function isZeroclawLogLine(line) {
+  return /^\d{4}-\d{2}-\d{2}T.*\s(?:INFO|WARN|DEBUG|TRACE)\b/.test(String(line || '').trim());
+}
+
 /**
  * Parse output của `zeroclaw status` thành JSON thân thiện.
  * Hàm này thiết kế để \"best-effort\": nếu không parse được một phần,
@@ -19,16 +29,17 @@ const ZEROCLAW_BIN = process.env.ZEROCLAW_BIN || 'zeroclaw';
  * @param {string} stdout
  */
 function parseStatus(stdout) {
-  const lines = stdout.split('\n').map((l) => l.trimEnd());
+  const cleaned = stripAnsi(stdout);
+  const lines = cleaned.split('\n').map((l) => l.trimEnd());
 
-  // Bỏ các dòng log kỹ thuật (bắt đầu bằng timestamp + INFO ...)
-  const filtered = lines.filter((l, idx) => {
-    if (idx === 0 && /\bINFO\b/.test(l)) return false;
-    return l.trim().length > 0;
+  const filtered = lines.filter((l) => {
+    const t = String(l || '').trim();
+    if (!t) return false;
+    return !isZeroclawLogLine(t);
   });
 
   const result = {
-    raw: stdout,
+    raw: filtered.join('\n').trim(),
     version: null,
     workspace: null,
     config_path: null,
@@ -177,13 +188,16 @@ function parseStatus(stdout) {
     }
 
     if (section === 'channels') {
-      const m = trimmed.match(/^([A-Za-z ]+):\s*(✅|❌)\s*(.*)$/u);
+      const m = trimmed.match(/^(.+?)\s*:??\s*(✅|❌)\s*(.*)$/u);
       if (m) {
         const name = m[1].trim();
         const enabled = m[2] === '✅';
         const detail = m[3].trim();
-        const key = name.toLowerCase().replace(/\s+/g, '_');
-        result.channels[key] = { name, enabled, detail };
+        const key = name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+        result.channels[key || name] = { name, enabled, detail };
       }
       continue;
     }
@@ -191,7 +205,13 @@ function parseStatus(stdout) {
     if (section === 'peripherals') {
       if (trimmed.startsWith('Enabled:')) {
         const v = trimmed.split(':').slice(1).join(':').trim().toLowerCase();
-        result.peripherals.enabled = v === 'yes' || v === 'true';
+        if (v === 'yes' || v === 'true' || v === 'on') {
+          result.peripherals.enabled = true;
+        } else if (v === 'no' || v === 'false' || v === 'off') {
+          result.peripherals.enabled = false;
+        } else {
+          result.peripherals.enabled = null;
+        }
       } else if (trimmed.startsWith('Boards:')) {
         const v = trimmed.split(':').slice(1).join(':').trim();
         result.peripherals.boards = Number(v) || null;
@@ -255,11 +275,17 @@ router.get('/service-status', async (_req, res) => {
       });
     }
 
-    const lines = stdout.split('\n').map((l) => l.trimEnd());
+    const cleaned = stripAnsi(stdout);
+    const lines = cleaned.split('\n').map((l) => l.trimEnd());
+    const filtered = lines.filter((l) => {
+      const t = String(l || '').trim();
+      if (!t) return false;
+      return !isZeroclawLogLine(t);
+    });
     res.json({
-      raw: stdout,
+      raw: filtered.join('\n').trim(),
       exitCode,
-      lines: lines.filter((l) => l.trim().length > 0),
+      lines: filtered,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

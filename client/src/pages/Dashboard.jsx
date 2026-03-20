@@ -155,7 +155,13 @@ function DashboardPage() {
 
   const provider = statusData.data?.provider || '—';
   const model = statusData.data?.model || '—';
-  const workspace = statusData.data?.workspace || statusData.data?.config_path || '—';
+  const version = statusData.data?.version || '—';
+  const workspace = statusData.data?.workspace || '—';
+  const configPath = statusData.data?.config_path || '—';
+  const channelsEnabled = Object.values(statusData.data?.channels || {}).filter(
+    (c) => c && c.enabled,
+  );
+  const peripheralsEnabled = statusData.data?.peripherals?.enabled;
 
   const serviceLines = serviceStatus.data?.lines || [];
   const serviceSummary =
@@ -198,6 +204,74 @@ function DashboardPage() {
         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
           <div className="text-slate-400">Workspace</div>
           <div className="mt-1 text-[11px] font-medium break-all">{workspace}</div>
+        </div>
+      </section>
+
+      <section className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-xs">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-200">ZeroClaw Status</h2>
+            <p className="text-[11px] text-slate-400">Tóm tắt từ <code>zeroclaw status</code>.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400">Provider</span>
+              <span className="text-[11px] font-medium text-slate-200 truncate">{provider}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400">Model</span>
+              <span className="text-[11px] font-medium text-slate-200 truncate">{model}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400">Version</span>
+              <span className="text-[11px] font-medium text-slate-200 truncate">{version}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400">Workspace</span>
+              <span className="text-[11px] font-medium text-slate-200 truncate">{workspace}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400">Config</span>
+              <span className="text-[11px] font-medium text-slate-200 truncate">{configPath}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div>
+              <div className="text-[11px] text-slate-400">Channels đang chạy</div>
+              {channelsEnabled.length === 0 ? (
+                <div className="mt-1 text-[11px] text-slate-500">(none)</div>
+              ) : (
+                <div className="mt-1 space-y-0.5">
+                  {channelsEnabled.map((c) => (
+                    <div key={c.name} className="flex items-start justify-between gap-2">
+                      <div className="text-[11px] text-slate-200">
+                        ✅ {c.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400 truncate">{c.detail || ''}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="text-[11px] text-slate-400">Peripherals</div>
+              <div className="mt-1 text-[11px] text-slate-200">
+                Enabled:{' '}
+                <span className="font-medium">
+                  {peripheralsEnabled === null || peripheralsEnabled === undefined
+                    ? '—'
+                    : peripheralsEnabled
+                      ? 'yes'
+                      : 'no'}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

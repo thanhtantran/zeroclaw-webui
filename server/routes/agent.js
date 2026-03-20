@@ -1,9 +1,6 @@
 /**
  * API gửi message đến ZeroClaw như chat
  *
- * - GET  /api/service/status         -> zeroclaw status
- * - GET  /api/service/service-status -> zeroclaw service status
- * - POST /api/service/restart        -> zeroclaw service restart
  */
 
 const express = require('express');
@@ -11,9 +8,21 @@ const { spawn } = require('child_process');
 
 const router = express.Router();
 
-function filterInfoLines(text) {
-  const lines = String(text || '').split(/\r?\n/);
-  const kept = lines.filter((line) => !/^\d{4}-\d{2}-\d{2}T.*\sINFO\s/.test(line));
+const ANSI_PATTERN = /\x1B\[[0-?]*[ -\/]*[@-~]/g;
+
+function stripAnsi(text) {
+  return String(text || '').replace(ANSI_PATTERN, '');
+}
+
+function filterAgentReply(text) {
+  const cleaned = stripAnsi(text);
+  const lines = cleaned.split(/\r?\n/);
+  const kept = lines.filter((line) => {
+    const t = String(line || '').trim();
+    if (!t) return false;
+    if (/^\d{4}-\d{2}-\d{2}T.*\s(?:INFO|WARN|DEBUG|TRACE)\b/.test(t)) return false;
+    return true;
+  });
   return kept.join('\n').trim();
 }
 
@@ -95,12 +104,15 @@ router.post('/message', async (req, res) => {
   const result = await runZeroclawAgentMessage(trimmed, { timeoutMs: 120000 });
 
   if (result.timedOut) {
-    res.status(504).json({ error: 'agent timed out', output: filterInfoLines(result.stdout + '\n' + result.stderr) });
+    res.status(504).json({
+      error: 'agent timed out',
+      output: filterAgentReply(result.stdout + '\n' + result.stderr),
+    });
     return;
   }
 
   const combined = `${result.stdout || ''}${result.stderr ? `\n${result.stderr}` : ''}`;
-  const output = filterInfoLines(combined);
+  const output = filterAgentReply(combined);
 
   res.json({
     exitCode: result.exitCode,
