@@ -9,6 +9,7 @@ const diagnosticsRoutes = require('./diagnostics');
 const updateRoutes = require('./update');
 const skillsRoutes = require('./skills');
 const agentRoutes = require('./agent');
+const memoryRoutes = require('./memory');
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.use('/diagnostics', diagnosticsRoutes);
 router.use('/update', updateRoutes);
 router.use('/skills', skillsRoutes);
 router.use('/agent', agentRoutes);
+router.use('/memory', memoryRoutes);
 
 module.exports = router;
