@@ -1,9 +1,12 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { run } = require('../utils/shell');
 
 const router = express.Router();
 
 const ZEROCLAW_BIN = process.env.ZEROCLAW_BIN || 'zeroclaw';
+const ZEROCLAW_WORKSPACE = process.env.ZEROCLAW_WORKSPACE || '';
 
 const ANSI_PATTERN = /\x1B\[[0-?]*[ -\/]*[@-~]/g;
 
@@ -33,6 +36,34 @@ function parseMemoryList(cleaned) {
     return { key: first, line };
   });
   return entries.filter((e) => e.key);
+}
+
+async function resolveWorkspacePaths() {
+  if (!ZEROCLAW_WORKSPACE) {
+    throw new Error('ZEROCLAW_WORKSPACE is not set');
+  }
+
+  const workspaceAbs = path.resolve(ZEROCLAW_WORKSPACE);
+  let workspaceReal = workspaceAbs;
+  try {
+    workspaceReal = await fs.promises.realpath(workspaceAbs);
+  } catch (_) {
+    throw new Error(`Workspace not found: ${workspaceAbs}`);
+  }
+
+  const memoryDirAbs = path.join(workspaceReal, 'memory');
+  const memoryFileAbs = path.join(workspaceReal, 'MEMORY.md');
+
+  return { workspaceReal, memoryDirAbs, memoryFileAbs };
+}
+
+function ensureInsideWorkspace(workspaceReal, targetPath) {
+  const ws = path.resolve(workspaceReal);
+  const tp = path.resolve(targetPath);
+  const prefix = ws.endsWith(path.sep) ? ws : ws + path.sep;
+  if (!(tp === ws || tp.startsWith(prefix))) {
+    throw new Error('Unsafe path: outside workspace');
+  }
 }
 
 router.get('/list', async (_req, res) => {
@@ -91,6 +122,84 @@ router.get('/get', async (req, res) => {
 
     const output = cleanCliOutput(stdout);
     res.json({ key, raw: output });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/clear-short-term', async (_req, res) => {
+  try {
+    const { workspaceReal, memoryDirAbs } = await resolveWorkspacePaths();
+    ensureInsideWorkspace(workspaceReal, memoryDirAbs);
+
+    if (path.basename(memoryDirAbs) !== 'memory') {
+      return res.status(500).json({ error: 'Refusing to clear: invalid memory dir' });
+    }
+
+    let dirents = [];
+    try {
+      dirents = await fs.promises.readdir(memoryDirAbs, { withFileTypes: true });
+    } catch (e) {
+      if (e && e.code === 'ENOENT') {
+        return res.json({ ok: true, deleted: 0, note: 'memory dir not found' });
+      }
+      throw e;
+    }
+
+    let deleted = 0;
+    for (const d of dirents) {
+      const name = d.name;
+      if (!name || name === '.' || name === '..') continue;
+      const p = path.join(memoryDirAbs, name);
+      ensureInsideWorkspace(workspaceReal, p);
+      await fs.promises.rm(p, { recursive: true, force: true });
+      deleted += 1;
+    }
+
+    res.json({ ok: true, deleted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/long-term', async (_req, res) => {
+  try {
+    const { workspaceReal, memoryFileAbs } = await resolveWorkspacePaths();
+    ensureInsideWorkspace(workspaceReal, memoryFileAbs);
+
+    let text = '';
+    try {
+      text = await fs.promises.readFile(memoryFileAbs, 'utf8');
+    } catch (e) {
+      if (e && e.code === 'ENOENT') {
+        return res.json({ exists: false, path: memoryFileAbs, text: '' });
+      }
+      throw e;
+    }
+
+    res.json({ exists: true, path: memoryFileAbs, text });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/long-term', async (req, res) => {
+  try {
+    const text = req?.body?.text;
+    if (typeof text !== 'string') {
+      return res.status(400).json({ error: 'text must be a string' });
+    }
+    if (text.length > 300000) {
+      return res.status(400).json({ error: 'text too large' });
+    }
+
+    const { workspaceReal, memoryFileAbs } = await resolveWorkspacePaths();
+    ensureInsideWorkspace(workspaceReal, memoryFileAbs);
+
+    await fs.promises.mkdir(path.dirname(memoryFileAbs), { recursive: true });
+    await fs.promises.writeFile(memoryFileAbs, text, 'utf8');
+
+    res.json({ ok: true, path: memoryFileAbs });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
