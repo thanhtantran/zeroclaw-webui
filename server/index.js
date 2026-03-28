@@ -6,9 +6,12 @@ const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { loadEnv } = require('./utils/env');
 const { initBuildWebSocket } = require('./updateSocket');
 const { initAgentWebSocket } = require('./agentSocket');
 const { applyMiddlewares } = require('./middleware');
+
+loadEnv(path.join(__dirname, '../.env'));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
