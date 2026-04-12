@@ -55,7 +55,7 @@ router.get('/list', async (_req, res) => {
 
 /**
  * POST /api/cron/add
- * Body: { schedule: "*/5 * * * *", prompt: "Check system health" }
+ * Body: { schedule: "schedule_string", prompt: "Check system health" }
  * Chạy `zeroclaw cron add "<schedule>" --prompt "<prompt>"`.
  */
 router.post('/add', async (req, res) => {
