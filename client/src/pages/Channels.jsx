@@ -6,7 +6,7 @@ function ChannelsPage() {
   const [telegramConfig, setTelegramConfig] = useState({ loading: true, data: null, error: null });
   const [tokenForm, setTokenForm] = useState({ botToken: '', loading: false, result: null });
   const [addUserForm, setAddUserForm] = useState({ userId: '', loading: false, result: null });
-  const [bindForm, setBindForm] = useState({ chatId: '', loading: false, result: null });
+  const [replaceTokenForm, setReplaceTokenForm] = useState({ newToken: '', loading: false, result: null, showForm: false });
 
   const fetchChannels = async () => {
     setChannels({ loading: true, data: null, error: null });
@@ -111,24 +111,30 @@ function ChannelsPage() {
     }
   };
 
-  const handleBindTelegram = async (e) => {
+  const handleReplaceToken = async (e) => {
     e.preventDefault();
-    if (!bindForm.chatId.trim()) return;
+    if (!replaceTokenForm.newToken.trim()) return;
 
-    setBindForm((prev) => ({ ...prev, loading: true, result: null }));
+    if (!confirm('Replace the existing Telegram bot token? This will update your configuration.')) return;
+
+    setReplaceTokenForm((prev) => ({ ...prev, loading: true, result: null }));
     try {
-      const res = await fetch('/api/channel/bind-telegram', {
+      const res = await fetch('/api/channel/telegram-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId: bindForm.chatId.trim() }),
+        body: JSON.stringify({ botToken: replaceTokenForm.newToken.trim() }),
       });
       const data = await res.json();
-      setBindForm({ chatId: '', loading: false, result: data });
-      if (res.ok && data.exitCode === 0) {
+      
+      if (res.ok) {
+        setReplaceTokenForm({ newToken: '', loading: false, result: { success: true, message: 'Token replaced successfully!' }, showForm: false });
+        fetchTelegramConfig();
         fetchChannels();
+      } else {
+        setReplaceTokenForm((prev) => ({ ...prev, loading: false, result: { error: data.error } }));
       }
     } catch (err) {
-      setBindForm((prev) => ({ ...prev, loading: false, result: { error: err.message } }));
+      setReplaceTokenForm((prev) => ({ ...prev, loading: false, result: { error: err.message } }));
     }
   };
 
@@ -342,54 +348,71 @@ function ChannelsPage() {
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-lg font-semibold">Bind Telegram Chat</h2>
+        <h2 className="mb-3 text-lg font-semibold">Replace Telegram Bot Token</h2>
         <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-          After configuring the bot token, bind your Telegram chat to receive notifications.
+          Update your Telegram bot token if you need to change it.
         </p>
-        <form onSubmit={handleBindTelegram} className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium">Chat ID</label>
-            <input
-              type="text"
-              value={bindForm.chatId}
-              onChange={(e) => setBindForm((prev) => ({ ...prev, chatId: e.target.value }))}
-              placeholder="123456789"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-950"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={bindForm.loading || !bindForm.chatId.trim()}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            {bindForm.loading ? 'Binding...' : 'Bind'}
-          </button>
-        </form>
 
-        {bindForm.result && (
-          <div className="mt-3">
-            {bindForm.result.error ? (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-300">
-                {bindForm.result.error}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div
-                  className={`rounded-md p-3 text-sm ${
-                    bindForm.result.exitCode === 0
-                      ? 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                      : 'bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300'
-                  }`}
+        {!replaceTokenForm.showForm ? (
+          <button
+            onClick={() => setReplaceTokenForm((prev) => ({ ...prev, showForm: true, result: null }))}
+            className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+          >
+            Replace Token
+          </button>
+        ) : (
+          <form onSubmit={handleReplaceToken} className="space-y-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium">New Telegram Bot Token</label>
+              <input
+                type="text"
+                value={replaceTokenForm.newToken}
+                onChange={(e) => setReplaceTokenForm((prev) => ({ ...prev, newToken: e.target.value }))}
+                placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-950"
+              />
+              <div className="mt-1 text-xs text-slate-500">
+                Get your bot token from{' '}
+                <a
+                  href="https://t.me/BotFather"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline dark:text-blue-400"
                 >
-                  {bindForm.result.exitCode === 0 ? 'Success!' : `Exit code: ${bindForm.result.exitCode}`}
-                </div>
-                {bindForm.result.stdout && (
-                  <pre className="overflow-auto rounded-md bg-slate-50 p-3 text-xs dark:bg-slate-950">
-                    {bindForm.result.stdout}
-                  </pre>
-                )}
+                  @BotFather
+                </a>
               </div>
-            )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={replaceTokenForm.loading || !replaceTokenForm.newToken.trim()}
+                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {replaceTokenForm.loading ? 'Replacing...' : 'Replace Token'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReplaceTokenForm({ newToken: '', loading: false, result: null, showForm: false })}
+                className="rounded-md bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
+        {replaceTokenForm.result && (
+          <div className="mt-3">
+            {replaceTokenForm.result.error ? (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-300">
+                {replaceTokenForm.result.error}
+              </div>
+            ) : replaceTokenForm.result.success ? (
+              <div className="rounded-md bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                {replaceTokenForm.result.message}
+              </div>
+            ) : null}
           </div>
         )}
       </div>

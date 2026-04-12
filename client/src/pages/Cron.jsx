@@ -87,33 +87,63 @@ function CronPage() {
 
         {jobs.data && (
           <div className="space-y-2">
-            <pre className="overflow-auto rounded-md bg-slate-50 p-3 text-xs dark:bg-slate-950">
-              {jobs.data.raw || 'No cron jobs configured'}
-            </pre>
-            {jobs.data.lines && jobs.data.lines.length > 0 && (
-              <div className="space-y-1">
-                {jobs.data.lines.map((line, idx) => {
-                  const match = line.match(/^(\S+)/);
-                  const id = match ? match[1] : null;
-                  return (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                    >
-                      <span className="font-mono">{line}</span>
-                      {id && (
-                        <button
-                          onClick={() => handleRemoveJob(id)}
-                          className="ml-2 rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {(() => {
+              const raw = jobs.data.raw || '';
+              // Check if it's the "No scheduled tasks" message
+              const isEmptyMessage = raw.includes('No scheduled tasks yet');
+              
+              if (isEmptyMessage) {
+                return (
+                  <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+                    No scheduled tasks yet.
+                  </div>
+                );
+              }
+
+              // Filter out instruction lines (lines that contain 'zeroclaw cron add')
+              const actualJobs = jobs.data.lines?.filter(line => {
+                const trimmed = line.trim();
+                // Skip empty lines
+                if (!trimmed) return false;
+                // Skip instruction lines
+                if (trimmed.includes('zeroclaw cron add')) return false;
+                if (trimmed.startsWith('No scheduled tasks')) return false;
+                return true;
+              }) || [];
+
+              if (actualJobs.length === 0) {
+                return (
+                  <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+                    No scheduled tasks yet.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-1">
+                  {actualJobs.map((line, idx) => {
+                    const match = line.match(/^(\S+)/);
+                    const id = match ? match[1] : null;
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-950"
+                      >
+                        <span className="font-mono">{line}</span>
+                        {id && (
+                          <button
+                            onClick={() => handleRemoveJob(id)}
+                            className="ml-2 rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
