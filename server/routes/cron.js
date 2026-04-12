@@ -18,6 +18,25 @@ function stripAnsi(text) {
   return String(text || '').replace(ANSI_PATTERN, '');
 }
 
+function isZeroclawLogLine(line) {
+  return /^\d{4}-\d{2}-\d{2}T.*\s(?:INFO|WARN|DEBUG|TRACE|ERROR)\b/.test(String(line || '').trim());
+}
+
+function filterLogLines(text) {
+  const cleaned = stripAnsi(text);
+  const lines = cleaned.split('\n').map((l) => l.trimEnd());
+  const filtered = lines.filter((l) => {
+    const t = String(l || '').trim();
+    if (!t) return false;
+    // Skip log lines
+    if (isZeroclawLogLine(t)) return false;
+    // Skip Usage lines
+    if (t.startsWith('Usage:')) return false;
+    return true;
+  });
+  return filtered.join('\n').trim();
+}
+
 /**
  * GET /api/cron/list
  * Chạy `zeroclaw cron list` và trả về danh sách cron jobs.
@@ -40,12 +59,12 @@ router.get('/list', async (_req, res) => {
       });
     }
 
-    const cleaned = stripAnsi(stdout);
-    const lines = cleaned.split('\n').map((l) => l.trimEnd()).filter(Boolean);
+    const cleaned = filterLogLines(stdout);
+    const lines = cleaned.split('\n').filter(Boolean);
 
     res.json({
       exitCode,
-      raw: cleaned.trim(),
+      raw: cleaned,
       lines,
     });
   } catch (err) {

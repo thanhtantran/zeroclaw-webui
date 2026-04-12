@@ -261,13 +261,40 @@ router.post('/telegram-add-user', async (req, res) => {
       allowedUsers.push(trimmedUserId);
     }
 
-    config.channels_config.telegram.allowed_users = allowedUsers;
+    // Update only the allowed_users line in the original content
+    const lines = content.split('\n');
+    let inTelegramSection = false;
+    let updated = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      if (line === '[channels_config.telegram]') {
+        inTelegramSection = true;
+        continue;
+      }
+      
+      if (inTelegramSection && line.startsWith('[')) {
+        inTelegramSection = false;
+      }
+      
+      if (inTelegramSection && line.startsWith('allowed_users')) {
+        const usersStr = allowedUsers.map(u => `"${u}"`).join(', ');
+        lines[i] = `allowed_users = [${usersStr}]`;
+        updated = true;
+        break;
+      }
+    }
+
+    if (!updated) {
+      return res.status(500).json({ error: 'Could not update allowed_users in config' });
+    }
 
     // Create backup before writing
     await createBackup(content);
 
-    // Write updated config
-    const newContent = toml.stringify(config);
+    // Write updated config preserving original formatting
+    const newContent = lines.join('\n');
     await writeConfig(newContent);
 
     res.json({
@@ -307,13 +334,40 @@ router.delete('/telegram-remove-user/:userId', async (req, res) => {
       allowedUsers = ['*'];
     }
 
-    config.channels_config.telegram.allowed_users = allowedUsers;
+    // Update only the allowed_users line in the original content
+    const lines = content.split('\n');
+    let inTelegramSection = false;
+    let updated = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      if (line === '[channels_config.telegram]') {
+        inTelegramSection = true;
+        continue;
+      }
+      
+      if (inTelegramSection && line.startsWith('[')) {
+        inTelegramSection = false;
+      }
+      
+      if (inTelegramSection && line.startsWith('allowed_users')) {
+        const usersStr = allowedUsers.map(u => `"${u}"`).join(', ');
+        lines[i] = `allowed_users = [${usersStr}]`;
+        updated = true;
+        break;
+      }
+    }
+
+    if (!updated) {
+      return res.status(500).json({ error: 'Could not update allowed_users in config' });
+    }
 
     // Create backup before writing
     await createBackup(content);
 
-    // Write updated config
-    const newContent = toml.stringify(config);
+    // Write updated config preserving original formatting
+    const newContent = lines.join('\n');
     await writeConfig(newContent);
 
     res.json({
