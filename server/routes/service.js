@@ -293,6 +293,78 @@ router.get('/service-status', async (_req, res) => {
 });
 
 /**
+ * POST /api/service/install
+ * Chạy `zeroclaw service install` để cài đặt service.
+ */
+router.post('/install', async (_req, res) => {
+  try {
+    const { stdout, stderr, exitCode, timedOut } = await run(ZEROCLAW_BIN, ['service', 'install'], {
+      timeout: 60000,
+    });
+
+    if (timedOut) {
+      return res.status(504).json({ error: 'zeroclaw service install timed out' });
+    }
+
+    res.json({
+      exitCode,
+      stdout,
+      stderr,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/service/start
+ * Chạy `zeroclaw service start`.
+ */
+router.post('/start', async (_req, res) => {
+  try {
+    const { stdout, stderr, exitCode, timedOut } = await run(ZEROCLAW_BIN, ['service', 'start'], {
+      timeout: 30000,
+    });
+
+    if (timedOut) {
+      return res.status(504).json({ error: 'zeroclaw service start timed out' });
+    }
+
+    res.json({
+      exitCode,
+      stdout,
+      stderr,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/service/stop
+ * Chạy `zeroclaw service stop`.
+ */
+router.post('/stop', async (_req, res) => {
+  try {
+    const { stdout, stderr, exitCode, timedOut } = await run(ZEROCLAW_BIN, ['service', 'stop'], {
+      timeout: 30000,
+    });
+
+    if (timedOut) {
+      return res.status(504).json({ error: 'zeroclaw service stop timed out' });
+    }
+
+    res.json({
+      exitCode,
+      stdout,
+      stderr,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/service/restart
  * Chạy `zeroclaw service restart`, trả về kết quả thô.
  */

@@ -3,7 +3,11 @@ import { NavLink } from 'react-router-dom';
 
 const tabs = [
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/service', label: 'Service' },
   { to: '/config', label: 'Config' },
+  { to: '/channels', label: 'Channels' },
+  { to: '/cron', label: 'Cron' },
+  { to: '/auth', label: 'Auth' },
   { to: '/diagnostics', label: 'Diagnostics' },
   { to: '/update', label: 'Update' },
   { to: '/skills', label: 'Skills' },

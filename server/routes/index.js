@@ -10,6 +10,9 @@ const updateRoutes = require('./update');
 const skillsRoutes = require('./skills');
 const agentRoutes = require('./agent');
 const memoryRoutes = require('./memory');
+const channelRoutes = require('./channel');
+const cronRoutes = require('./cron');
+const authRoutes = require('./auth');
 
 const router = express.Router();
 
@@ -24,5 +27,8 @@ router.use('/update', updateRoutes);
 router.use('/skills', skillsRoutes);
 router.use('/agent', agentRoutes);
 router.use('/memory', memoryRoutes);
+router.use('/channel', channelRoutes);
+router.use('/cron', cronRoutes);
+router.use('/auth', authRoutes);
 
 module.exports = router;
