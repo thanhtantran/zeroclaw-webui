@@ -5,6 +5,7 @@ function ChannelsPage() {
   const [doctorResult, setDoctorResult] = useState(null);
   const [telegramConfig, setTelegramConfig] = useState({ loading: true, data: null, error: null });
   const [tokenForm, setTokenForm] = useState({ botToken: '', loading: false, result: null });
+  const [addUserForm, setAddUserForm] = useState({ userId: '', loading: false, result: null });
   const [bindForm, setBindForm] = useState({ chatId: '', loading: false, result: null });
 
   const fetchChannels = async () => {
@@ -64,6 +65,49 @@ function ChannelsPage() {
       }
     } catch (err) {
       setTokenForm((prev) => ({ ...prev, loading: false, result: { error: err.message } }));
+    }
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    if (!addUserForm.userId.trim()) return;
+
+    setAddUserForm((prev) => ({ ...prev, loading: true, result: null }));
+    try {
+      const res = await fetch('/api/channel/telegram-add-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: addUserForm.userId.trim() }),
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setAddUserForm({ userId: '', loading: false, result: { success: true, message: data.message } });
+        fetchTelegramConfig();
+      } else {
+        setAddUserForm((prev) => ({ ...prev, loading: false, result: { error: data.error } }));
+      }
+    } catch (err) {
+      setAddUserForm((prev) => ({ ...prev, loading: false, result: { error: err.message } }));
+    }
+  };
+
+  const handleRemoveUser = async (userId) => {
+    if (!confirm(`Remove user ${userId} from allowed list?`)) return;
+
+    try {
+      const res = await fetch(`/api/channel/telegram-remove-user/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        fetchTelegramConfig();
+      } else {
+        alert(data.error || 'Failed to remove user');
+      }
+    } catch (err) {
+      alert(`Error: ${err.message}`);
     }
   };
 
@@ -164,24 +208,88 @@ function ChannelsPage() {
         ) : (
           <div className="space-y-3">
             {telegramConfig.data?.exists && telegramConfig.data?.config?.hasToken ? (
-              <div className="rounded-md bg-green-50 p-3 dark:bg-green-900/20">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-sm font-medium text-green-800 dark:text-green-300">
-                    ✓ Telegram Bot Token Configured
-                  </span>
+              <div className="space-y-3">
+                <div className="rounded-md bg-green-50 p-3 dark:bg-green-900/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="text-sm font-medium text-green-800 dark:text-green-300">
+                      ✓ Telegram Bot Token Configured
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-xs text-green-700 dark:text-green-400">
+                    <div>Token: {telegramConfig.data.config.tokenPreview}</div>
+                    <div>Enabled: {telegramConfig.data.config.enabled ? 'Yes' : 'No'}</div>
+                    <div>Stream Mode: {telegramConfig.data.config.stream_mode}</div>
+                  </div>
+                  <button
+                    onClick={() => setTokenForm((prev) => ({ ...prev, botToken: '' }))}
+                    className="mt-2 text-xs text-green-700 underline hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                  >
+                    Update token
+                  </button>
                 </div>
-                <div className="space-y-1 text-xs text-green-700 dark:text-green-400">
-                  <div>Token: {telegramConfig.data.config.tokenPreview}</div>
-                  <div>Enabled: {telegramConfig.data.config.enabled ? 'Yes' : 'No'}</div>
-                  <div>Stream Mode: {telegramConfig.data.config.stream_mode}</div>
-                  <div>Allowed Users: {telegramConfig.data.config.allowed_users?.join(', ') || 'None'}</div>
+
+                <div className="rounded-md border border-slate-200 p-3 dark:border-slate-700">
+                  <h3 className="mb-2 text-sm font-medium">Allowed Users</h3>
+                  <div className="mb-3 space-y-1">
+                    {telegramConfig.data.config.allowed_users?.length > 0 ? (
+                      telegramConfig.data.config.allowed_users.map((userId, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2 text-xs dark:bg-slate-950"
+                        >
+                          <span className="font-mono">{userId}</span>
+                          {userId !== '*' && (
+                            <button
+                              onClick={() => handleRemoveUser(userId)}
+                              className="ml-2 rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-xs text-slate-500">No users configured</div>
+                    )}
+                  </div>
+
+                  <form onSubmit={handleAddUser} className="space-y-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium">Add User ID</label>
+                      <input
+                        type="text"
+                        value={addUserForm.userId}
+                        onChange={(e) => setAddUserForm((prev) => ({ ...prev, userId: e.target.value }))}
+                        placeholder="123456789"
+                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-950"
+                      />
+                      <div className="mt-1 text-xs text-slate-500">
+                        Get your user ID by messaging the bot
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={addUserForm.loading || !addUserForm.userId.trim()}
+                      className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {addUserForm.loading ? 'Adding...' : 'Add User'}
+                    </button>
+                  </form>
+
+                  {addUserForm.result && (
+                    <div className="mt-2">
+                      {addUserForm.result.error ? (
+                        <div className="rounded-md bg-red-50 p-2 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-300">
+                          {addUserForm.result.error}
+                        </div>
+                      ) : addUserForm.result.success ? (
+                        <div className="rounded-md bg-green-50 p-2 text-xs text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                          {addUserForm.result.message}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => setTokenForm((prev) => ({ ...prev, botToken: '' }))}
-                  className="mt-2 text-xs text-green-700 underline hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                >
-                  Update token
-                </button>
               </div>
             ) : (
               <form onSubmit={handleSaveToken} className="space-y-3">

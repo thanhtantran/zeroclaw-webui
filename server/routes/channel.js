@@ -22,6 +22,21 @@ function stripAnsi(text) {
   return String(text || '').replace(ANSI_PATTERN, '');
 }
 
+function isZeroclawLogLine(line) {
+  return /^\d{4}-\d{2}-\d{2}T.*\s(?:INFO|WARN|DEBUG|TRACE|ERROR)\b/.test(String(line || '').trim());
+}
+
+function filterLogLines(text) {
+  const cleaned = stripAnsi(text);
+  const lines = cleaned.split('\n').map((l) => l.trimEnd());
+  const filtered = lines.filter((l) => {
+    const t = String(l || '').trim();
+    if (!t) return false;
+    return !isZeroclawLogLine(t);
+  });
+  return filtered.join('\n').trim();
+}
+
 /**
  * GET /api/channel/list
  * Chạy `zeroclaw channel list` và trả về danh sách channels.
@@ -44,12 +59,12 @@ router.get('/list', async (_req, res) => {
       });
     }
 
-    const cleaned = stripAnsi(stdout);
-    const lines = cleaned.split('\n').map((l) => l.trimEnd()).filter(Boolean);
+    const cleaned = filterLogLines(stdout);
+    const lines = cleaned.split('\n').filter(Boolean);
 
     res.json({
       exitCode,
-      raw: cleaned.trim(),
+      raw: cleaned,
       lines,
     });
   } catch (err) {
@@ -137,10 +152,11 @@ router.get('/telegram-config', async (_req, res) => {
         tokenPreview: telegramConfig.bot_token 
           ? `${telegramConfig.bot_token.substring(0, 10)}...` 
           : null,
-        allowed_users: telegramConfig.allowed_users,
+        allowed_users: telegramConfig.allowed_users || [],
         stream_mode: telegramConfig.stream_mode,
         interrupt_on_new_message: telegramConfig.interrupt_on_new_message,
         mention_only: telegramConfig.mention_only,
+        draft_update_interval_ms: telegramConfig.draft_update_interval_ms,
       } : null,
     });
   } catch (err) {
@@ -207,6 +223,103 @@ router.post('/telegram-config', async (req, res) => {
     res.json({
       ok: true,
       message: 'Telegram configuration saved',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/channel/telegram-add-user
+ * Body: { userId: "123456789" }
+ * Add user to allowed_users list
+ */
+router.post('/telegram-add-user', async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId || typeof userId !== 'string') {
+    return res.status(400).json({ error: 'userId is required and must be a string' });
+  }
+
+  try {
+    const content = await readConfig();
+    const config = toml.parse(content);
+
+    if (!config.channels_config?.telegram) {
+      return res.status(400).json({ error: 'Telegram configuration not found' });
+    }
+
+    let allowedUsers = config.channels_config.telegram.allowed_users || [];
+    
+    // Remove "*" if it exists when adding specific user
+    if (allowedUsers.includes('*')) {
+      allowedUsers = [];
+    }
+
+    const trimmedUserId = userId.trim();
+    if (!allowedUsers.includes(trimmedUserId)) {
+      allowedUsers.push(trimmedUserId);
+    }
+
+    config.channels_config.telegram.allowed_users = allowedUsers;
+
+    // Create backup before writing
+    await createBackup(content);
+
+    // Write updated config
+    const newContent = toml.stringify(config);
+    await writeConfig(newContent);
+
+    res.json({
+      ok: true,
+      message: 'User added to allowed list',
+      allowed_users: allowedUsers,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/channel/telegram-remove-user/:userId
+ * Remove user from allowed_users list
+ */
+router.delete('/telegram-remove-user/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const content = await readConfig();
+    const config = toml.parse(content);
+
+    if (!config.channels_config?.telegram) {
+      return res.status(400).json({ error: 'Telegram configuration not found' });
+    }
+
+    let allowedUsers = config.channels_config.telegram.allowed_users || [];
+    allowedUsers = allowedUsers.filter((u) => u !== userId);
+
+    // If no users left, set to ["*"]
+    if (allowedUsers.length === 0) {
+      allowedUsers = ['*'];
+    }
+
+    config.channels_config.telegram.allowed_users = allowedUsers;
+
+    // Create backup before writing
+    await createBackup(content);
+
+    // Write updated config
+    const newContent = toml.stringify(config);
+    await writeConfig(newContent);
+
+    res.json({
+      ok: true,
+      message: 'User removed from allowed list',
+      allowed_users: allowedUsers,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
