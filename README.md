@@ -1,3 +1,26 @@
+# ZeroClaw WebUI
+
+Web app (responsive, ưu tiên desktop-first) để quản lý ZeroClaw chạy trên Orange Pi Zero2/Zero3: xem trạng thái, chạy doctor, điều khiển service, pull+build, chỉnh `config.toml`, và quản lý skills (open-skills) và còn nhiều chức năng nữa
+
+**Hướng dẫn cài đặt ZeroClaw trên Orange Pi Zero2**
+[![Hướng dẫn cài đặt ZeroClaw trên Orange Pi Zero2](https://img.youtube.com/vi/kzjKOWg-lQA/0.jpg)]([https://www.youtube.com](https://www.youtube.com/watch?v=kzjKOWg-lQA))
+
+## Yêu cầu cấu hình
+
+### Thiết bị/OS (Orange Pi Zero2 hoặc Orange Pi Zero3)
+- Linux (khuyến nghị Debian/Ubuntu base).
+- Có user `admin` và các đường dẫn đúng như bên dưới.
+- ZeroClaw CLI cài sẵn và chạy được trong PATH:
+  - `zeroclaw status`
+  - `zeroclaw doctor`
+  - `zeroclaw channel doctor`
+  - `zeroclaw service status|start|stop|restart`
+  - `zeroclaw skills list`
+- Repo ZeroClaw và open-skills tồn tại:
+  - Repo ZeroClaw: `/home/admin/zeroclaw`
+  - Open skills: `/home/admin/open-skills/skills/**/SKILL.md`
+
+
 # Hướng dẫn Deploy ZeroClaw WebUI
 
 Hướng dẫn triển khai ứng dụng ZeroClaw Manager (client + server) lên môi trường production, đặc biệt trên Orange Pi Zero2.
