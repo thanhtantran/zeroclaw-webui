@@ -3,6 +3,8 @@
 Web app (responsive, ưu tiên desktop-first) để quản lý ZeroClaw chạy trên Orange Pi Zero2/Zero3: xem trạng thái, chạy doctor, điều khiển service, pull+build, chỉnh `config.toml`, và quản lý skills (open-skills) và còn nhiều chức năng nữa
 
 **Hướng dẫn cài đặt ZeroClaw trên Orange Pi Zero2**
+
+
 [![Hướng dẫn cài đặt ZeroClaw trên Orange Pi Zero2](https://img.youtube.com/vi/kzjKOWg-lQA/0.jpg)]([https://www.youtube.com](https://www.youtube.com/watch?v=kzjKOWg-lQA))
 
 ## Yêu cầu cấu hình
